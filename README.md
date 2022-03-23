@@ -3,4 +3,4 @@
 - `qvt_large_simulations.ipynb`: runs the scalable and numerical simulations over a set of error magnitudes for a given error model and list of qubits. It also performs the confidence interval analysis and estimates the passing error magnitudes.
 - `qv_fitter_example.ipynb`: runs qiskit's standard QV experiment and analyzes with the QVFitter class but supplements with new functions to analyze the data and calculate the bootstrap confidence interval.
 
-The pakcage requires `qiskit==0.20.0`.
+The package requires `qiskit==0.20.0`.
