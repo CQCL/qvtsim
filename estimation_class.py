@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 #####################################################################################
 #
 # Copyright 2022 Quantinuum
@@ -36,7 +37,7 @@ class QVEstimate(object):
                  error_name: str,
                  error_list: list):
         """
-        Returns probability of success for range of QV experiments from analytic model.
+        Returns probability of success for range of QV experiments.
         
         Args:
             qubit_list: list of qubits to test 
@@ -48,7 +49,10 @@ class QVEstimate(object):
         self.qubit_list = qubit_list
         self.optimization_lvl = optimization_lvl
         self.error_name = error_name
-        self.error_dict = {e: convert_error_dict(e, self.error_name) for e in error_list}
+        self.error_dict = {
+            e: convert_error_dict(e, self.error_name) 
+            for e in error_list
+        }
         self.ideal_success = {}
         self.act_success = {}
         

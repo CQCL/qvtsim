@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 #####################################################################################
 #
 # Copyright 2022 Quantinuum
@@ -170,9 +171,14 @@ def gate_counts(qv_circs) -> dict:
     
     gcounts = {'u1': [], 'u2':[], 'u3':[], 'cx': [], 'cz':[]}
     for qc in qv_circs:
-        count_dict = qc.count_ops()
-        [gcounts[key].append(count_dict[key]) for key in gcounts if key in count_dict]
-        
+        try: 
+            count_dict = qc.count_ops()
+        except AttributeError:
+            count_dict = QuantumCircuit.from_qasm_str(qc).count_ops()
+        [
+            gcounts[key].append(count_dict[key]) 
+            for key in gcounts if key in count_dict
+        ]
     return gcounts
     
 
@@ -233,17 +239,61 @@ def convert_error_dict(error, etype):
     }
     
     edict = {
-        'TQ Dep': {'tq_dep': 10*error/(12/5+10), 'sq_dep': error/(12/5+10), 'meas': error},
-        'SQ Dep': {'sq_dep': 10*error/25, 'tq_dep': error/25, 'meas': error},
-        'TQ Coh': {'tq_coh': 10*error/(12/5+10), 'sq_dep': error/(12/5+10), 'meas': error},
-        'Measure': {'meas': 10*error, 'tq_dep': 10*error/(12/5+10), 'sq_dep': error/(12/5+10)},
-        'Realistic cross': {'tq_cross': error,  'tq_dep': 10*error/(12/5+10), 'sq_dep': error/(12/5+10), 'meas': error},
-        'Realistic dph': {'tq_dph': error, 'tq_dep': 10*error/(12/5+10), 'sq_dep': error/(12/5+10), 'meas': error},
-        'Uncontrolled': {'tq_cross': 1e-3, 'tq_dph': error/2, 'tq_coh': error/(12/5+11), 'tq_dep': 10*error/(12/5+11), 'sq_dep': error/(12/5+11), 'meas': error},
-        'Realistic coh': {'tq_coh': 5*error/(12/5+10), 'tq_dep': 5*error/(12/5+10), 'sq_dep': error/(12/5+10), 'meas': error},
-        'Realistic all': {'tq_cross': error/2, 'tq_dph': error/2, 'tq_coh': error/(12/5+11), 'tq_dep': 10*error/(12/5+11), 'sq_dep': error/(12/5+11), 'meas': error}
+        'TQ Dep': {
+            'tq_dep': 10*error/(12/5+10), 
+            'sq_dep': error/(12/5+10), 
+            'meas': error
+        },
+        'SQ Dep': {
+            'sq_dep': 10*error/25, 
+            'tq_dep': error/25, 
+            'meas': error
+        },
+        'TQ Coh': {
+            'tq_coh': 10*error/(12/5+10), 
+            'sq_dep': error/(12/5+10), 
+            'meas': error
+        },
+        'Measure': {
+            'meas': 10*error, 
+            'tq_dep': 10*error/(12/5+10), 
+            'sq_dep': error/(12/5+10)
+        },
+        'Realistic cross': {
+            'tq_cross': error,  
+            'tq_dep': 10*error/(12/5+10), 
+            'sq_dep': error/(12/5+10), 
+            'meas': error
+        },
+        'Realistic dph': {
+            'tq_dph': error, 
+            'tq_dep': 10*error/(12/5+10), 
+            'sq_dep': error/(12/5+10), 
+            'meas': error
+        },
+        'Uncontrolled': {
+            'tq_cross': 1e-3, 
+            'tq_dph': error/2, 
+            'tq_coh': error/(12/5+11), 
+            'tq_dep': 10*error/(12/5+11), 
+            'sq_dep': error/(12/5+11), 
+            'meas': error
+        },
+        'Realistic coh': {
+            'tq_coh': 5*error/(12/5+10), 
+            'tq_dep': 5*error/(12/5+10), 
+            'sq_dep': error/(12/5+10), 
+            'meas': error
+        },
+        'Realistic all': {
+            'tq_cross': error/2, 
+            'tq_dph': error/2, 
+            'tq_coh': error/(12/5+11), 
+            'tq_dep': 10*error/(12/5+11), 
+            'sq_dep': error/(12/5+11), 
+            'meas': error
+        }
     }
-
     out = {**default_dict, **edict[etype]}
    
     return out

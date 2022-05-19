@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 #####################################################################################
 #
 # Copyright 2022 Quantinuum
@@ -78,11 +79,15 @@ def arbitrary_noise(error_dict: dict,
         
     # Prep errors
     if 'prep' in error_dict and error_dict['prep'] != 0:
-        prep_error = pauli_error([('X', error_dict['prep']), ('I', 1 - error_dict['prep'])])
+        prep_error = pauli_error(
+            [('X', error_dict['prep']), ('I', 1 - error_dict['prep'])]
+        )
         
     # Measurement errors
     if 'meas' in error_dict and error_dict['meas'] != 0:
-        meas_error = pauli_error([('X', error_dict['meas']), ('I', 1 - error_dict['meas'])])
+        meas_error = pauli_error(
+            [('X', error_dict['meas']), ('I', 1 - error_dict['meas'])
+        ])
         
     # make noise model
     noise_model = NoiseModel()
@@ -131,15 +136,23 @@ def arbitrary_noise(error_dict: dict,
                 [(n + 1) % nqubits,
                  (n - 1) % nqubits]
             )
-            print({n: [(n + 1) % nqubits, (n - 1) % nqubits]})
 
     if 'tq_cross' in error_dict and error_dict['tq_cross'] != 0:
         dep = depolarizing_error(2*error_dict['tq_cross'], 1)
         for n in range(nqubits):
             for m in range(nqubits):
-                adjacent_list = [(n+1)%nqubits, (n-1)%nqubits, (m+1)%nqubits, (m-1)%nqubits]
+                adjacent_list = [
+                    (n+1)%nqubits, 
+                    (n-1)%nqubits, 
+                    (m+1)%nqubits, 
+                    (m-1)%nqubits
+                ]
                 adjacent_list = [a for a in adjacent_list if a != n and a != m]
-                noise_model.add_nonlocal_quantum_error(dep, ['cx', 'cz'], [n, m], adjacent_list)
-                print({(n,m): adjacent_list})
+                noise_model.add_nonlocal_quantum_error(
+                    dep, 
+                    ['cx', 'cz'], 
+                    [n, m], 
+                    adjacent_list
+                )
             
     return noise_model

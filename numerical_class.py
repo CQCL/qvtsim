@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 #####################################################################################
 #
 # Copyright 2022 Quantinuum
@@ -22,7 +23,6 @@ import pickle
 from datetime import datetime
 
 from qiskit import Aer, execute, QuantumCircuit
-from qiskit.providers.aer.extensions.snapshot_probabilities import *
 import qiskit.ignis.verification.quantum_volume as qv
 
 from estimation_class import QVEstimate
@@ -56,22 +56,27 @@ class NumericalEstimate(QVEstimate):
                 e: arbitrary_noise(edict, n, True) 
                 for e, edict in self.error_dict.items()
             }
-            qv_circs, heavy_outputs, self.ideal_success[n] = generate_ideal(n, self.ntrials)
+            qv_circs, heavy_outputs, self.ideal_success[n] = generate_ideal(
+                n, 
+                self.ntrials
+            )
             if self.optimization_lvl != 'high':
-                # Everything but 'high' is independent of the error rate so done outside next loop
-                pm = preset_passes(self.optimization_lvl, self.transpiler_options)
-                qv_circs_new = pm.run(qv_circs)
+                # Everything but 'high' is independent of the error rate so done 
+                # outside next loop
+                pm = preset_passes(self.optimization_lvl)
+                qv_circs_new = [pm.run(qc) for qc in qv_circs]
                 self.gate_counts[n] = gate_counts(qv_circs_new)
                 
             for e in self.error_dict:
                 if self.optimization_lvl == 'high':
-                    # 'high' optimization is set based on error rate so done inside loop
+                    # 'high' optimization is set based on error rate so done 
+                    # inside loop
                     transpiler_options = {
                         'tol': estimate_errors(self.error_dict[e]), 
                         'mirror': True
                     }
                     pm = preset_passes('high', transpiler_options)
-                    qv_circs_new = pm.run(qv_circs)
+                    qv_circs_new = [pm.run(qc) for qc in qv_circs]
                     self.gate_counts[n] = gate_counts(qv_circs_new)
 
                 self.act_success[n, e] = act_outcomes(
@@ -103,12 +108,17 @@ def generate_ideal(nqubits: int,
     qv_circs, qv_circs_nomeas = qv_circuits(nqubits, reps)
     
     # circuit simulation
-    ideal_results = execute(qv_circs_nomeas,
-                            backend=backend_ideal).result()
+    ideal_results = execute(
+        qv_circs_nomeas,
+        backend=backend_ideal
+    ).result()
                                   
     # identify heavy outcomes
     plist = [
-        np.array([np.abs(s)**2 for s in ideal_results.get_statevector(i)])
+        np.array([
+            np.abs(s)**2 
+            for s in ideal_results.get_statevector(i)
+        ])
         for i in range(reps)
     ]
     heavy_outcomes = [np.argsort(p)[len(p)//2:] for p in plist]
@@ -151,25 +161,32 @@ def act_outcomes(qv_circs: list,
             
         qc.remove_final_measurements()
         [qc.id(q) for q in range(qc.num_qubits)]
-        qc.snapshot_probabilities('end', None)
+        qc.save_probabilities(label='end')
 
         backend = Aer.get_backend('qasm_simulator')
-        ideal_results = execute(qc, 
-                                noise_model=noise_model,
-                                backend=backend, 
-                                optimization_level=0).result()
-                                       
-        tmp_probs = ideal_results.results[0].data.snapshots['probabilities']['end'][0]['value']
+        ideal_results = execute(
+            qc, 
+            noise_model=noise_model,
+            backend=backend, 
+            optimization_level=0
+        ).result()
+        tmp_probs = ideal_results.results[0].data.end
         
         if optimization_level == 'high':
-            heavy_probs.append(sum(tmp_probs[hex(h)]
-                                   for h in np.argsort(meas_order)[heavy_outputs[i]]
-                                   if hex(h) in tmp_probs))
+            heavy_probs.append(
+                sum(
+                    tmp_probs[h]
+                    for h in np.argsort(meas_order)[heavy_outputs[i]]
+                )
+            )
                               
         else:
-            heavy_probs.append(sum(tmp_probs[hex(h)]
-                                   for h in heavy_outputs[i]
-                                   if hex(h) in tmp_probs))
+            heavy_probs.append(
+                sum(
+                    tmp_probs[h]
+                    for h in heavy_outputs[i]
+                )
+            )
 
     return heavy_probs
 
@@ -192,7 +209,10 @@ def new_result_order(nqubits,
     morder = read_meas_order(nqubits, qc)
 
     str_list = [binstr(i, nqubits) for i in range(2**nqubits)]
-    meas_map = [int(''.join(np.array([b for b in bstr])[morder]), 2) for bstr in str_list]
+    meas_map = [
+        int(''.join(np.array([b for b in bstr])[morder]), 2) 
+        for bstr in str_list
+    ]
         
     return meas_map
 

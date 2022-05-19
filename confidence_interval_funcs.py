@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python
+
 #####################################################################################
 #
 # Copyright 2022 Quantinuum
@@ -21,12 +22,10 @@ from datetime import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.special import  erf
 
-from analysis_util import success_lower
+from analysis_functions import original_bounds
 from transpiler_passes import preset_passes
-
-from qiskit.providers.aer.extensions.snapshot_density_matrix import *
-from qiskit.providers.aer.extensions.snapshot_statevector import *
 
 
 ecolor = {i: plt.get_cmap('tab10').colors[i] for i in range(10)}
@@ -67,7 +66,9 @@ def analyze_confidence_intervals(act_success: dict,
         probs = np.array(probs)
         for ntrials in nc_list:
             # resample from initial set to generate resampled set of experiments
-            resampled_probs = probs[np.random.randint(0, len(probs), size=(reps, ntrials))]
+            resampled_probs = probs[
+                np.random.randint(0, len(probs), size=(reps, ntrials))
+            ]
             resampled_probs[resampled_probs < 0] = 0
             resampled_probs[resampled_probs > 1] = 1
                 
@@ -76,10 +77,10 @@ def analyze_confidence_intervals(act_success: dict,
                 success_list = np.random.binomial(shots, resampled_probs)/shots
                 success[ntrials, shots] = np.sum(success_list, 1)/ntrials
 
-                lower['original'][n, e][ntrials, shots] = success_lower(
+                lower['original'][n, e][ntrials, shots] = original_bounds(
                     success[ntrials, shots], 
                     ntrials
-                )
+                )[0]
                 coverage['original'][n, e][ntrials, shots] = sum(
                     mean_probs >= lower['original'][n, e][ntrials, shots]
                 )/reps
@@ -111,4 +112,6 @@ def lower_bootstrap(success_list,
     success_list = np.random.binomial(shots, probs)/shots
     success = np.mean(success_list, 1)
     
-    return 2 * np.mean(success_list) - np.quantile(success, 0.9773)
+    thresh = 1/2 + erf(np.sqrt(2))/2
+
+    return 2 * np.mean(success_list) - np.quantile(success, thresh)
