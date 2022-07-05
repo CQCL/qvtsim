@@ -1,4 +1,5 @@
-qiskit==0.30.1
+qiskit==0.37.0
+qiskit-ignis==0.6.0
 numpy==1.20.1
 scipy==1.6.1
 matplotlib==3.5.1

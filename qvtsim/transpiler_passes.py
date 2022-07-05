@@ -25,7 +25,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager
 from qiskit.circuit.library import SwapGate, CXGate
-from qiskit.circuit.library import RXXGate, RYYGate, RZZGate
+from qiskit.circuit.library import RZZGate, U3Gate
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
@@ -143,7 +143,7 @@ class ApproxBlocks(TransformationPass):
         for node in dag.topological_op_nodes():
             if node not in all_block_nodes:
                 # need to add this node to find out where in the list it goes
-                preds = [nd for nd in dag.predecessors(node) if nd.type == 'op']
+                preds = [nd for nd in dag.predecessors(node) if hasattr(nd, 'op')]
 
                 block_count = 0
                 while preds:
@@ -176,7 +176,7 @@ class ApproxBlocks(TransformationPass):
                 new_dag.apply_operation_back(
                     block[0].op, 
                     [qubit_map[q] for q in block[0].qargs],
-                    block[0].cargs, block[0].condition
+                    block[0].cargs
                 )
             else:
                 # find the qubits involved in this block
@@ -233,7 +233,6 @@ class ApproxBlocks(TransformationPass):
                             nd.op, 
                             [qubit_map[q] for q in nd.qargs], 
                             nd.cargs, 
-                            nd.condition
                         )
         return new_dag
         
@@ -352,15 +351,25 @@ def write_circuit(best_decomp: int,
         qc.compose(decomposition_euler[2*best_decomp+1], [q[1]], inplace=True)
         
     elif arbitrary_angles:
-        gate_list = [RXXGate, RYYGate, RZZGate]
-        tq_angles = [-target_decomposed.a, -target_decomposed.b, -target_decomposed.c]
-        
         qc.compose(decomp._decomposer1q(target_decomposed.K2r), [q[0]], inplace=True)
         qc.compose(decomp._decomposer1q(target_decomposed.K2l), [q[1]], inplace=True)
-        
-        for i in range(best_decomp):
-            qc.append(gate_list[i](2*tq_angles[i]), [q[0], q[1]])
 
+        tq_angles = [target_decomposed.a, target_decomposed.b, target_decomposed.c]
+        for i in range(best_decomp):
+            if i == 0:
+                qc.compose(U3Gate(np.pi/2, 0, 0), [q[0]], inplace=True)  # y rotation
+                qc.compose(U3Gate(np.pi/2, 0, 0), [q[1]], inplace=True)  # y rotation
+            elif i == 1:
+                qc.compose(U3Gate(np.pi/2, -np.pi/2, np.pi/2), [q[0]], inplace=True)  # x rotation
+                qc.compose(U3Gate(np.pi/2, -np.pi/2, np.pi/2), [q[1]], inplace=True)  # x rotation
+            qc.append(RZZGate(-2*tq_angles[i]), [q[0], q[1]])
+            if i == 0:
+                qc.compose(U3Gate(-np.pi/2, 0, 0), [q[0]], inplace=True)  # y rotation
+                qc.compose(U3Gate(-np.pi/2, 0, 0), [q[1]], inplace=True)  # y rotation
+            elif i == 1:
+                qc.compose(U3Gate(-np.pi/2, -np.pi/2, np.pi/2), [q[0]], inplace=True)  # x rotation
+                qc.compose(U3Gate(-np.pi/2, -np.pi/2, np.pi/2), [q[1]], inplace=True)  # x rotation
+        
         qc.compose(decomp._decomposer1q(target_decomposed.K1r), [q[0]], inplace=True)  
         qc.compose(decomp._decomposer1q(target_decomposed.K1l), [q[1]], inplace=True)
     
