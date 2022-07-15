@@ -60,23 +60,32 @@ def bootstrap_bounds(qv_fitter,
         reps,
         ntrials
     )
-    qv_mean = np.mean([
-        (
+    qv_mean = (
+        sum(
             qv_fitter.heavy_output_counts[f'qv_depth_{nqubits}_trial_{i}']
-            /qv_fitter._circ_shots[f'qv_depth_{nqubits}_trial_{i}']
-        )
-        for i in range(ntrials)
-    ])
+            for i in range(ntrials)
+        ) / 
+        sum(
+            qv_fitter._circ_shots[f'qv_depth_{nqubits}_trial_{i}']
+            for i in range(ntrials)
+        ) 
+    )
     lower_ci = 2*qv_mean - np.quantile(success, 1/2 + erf(np.sqrt(2))/2)
     upper_ci = 2*qv_mean - np.quantile(success, 1/2 - erf(np.sqrt(2))/2)
 
-    return lower_ci, upper_ci
+    return lower_ci, upper_ci, success
     
 
 def bootstrap(qv_fitter,
               reps: int = 1000,
               ntrials: Optional[int] = None):
-    ''' Semi-parameteric bootstrap QV data. '''
+    ''' 
+    Semi-parameteric bootstrap QV data 
+    
+    Notes:
+        -updated to take arb number of shots per circuit
+    
+    '''
     nqubits = len(qv_fitter.qubit_lists[0])
         
     if not ntrials:
@@ -90,10 +99,13 @@ def bootstrap(qv_fitter,
         qv_fitter.heavy_output_counts[f'qv_depth_{nqubits}_trial_{i}']/shot_list[i]
         for i in range(ntrials)
     ])
-    probs = success_list[
-        np.random.randint(0, ntrials, size=(reps, ntrials))
-    ]
-    success_list = np.random.binomial(shot_list, probs)/shot_list
-    success = np.mean(success_list, 1)
-                
-    return success
+
+    resampled_ind = np.random.randint(0, ntrials, size=(reps, ntrials))
+    resampled_shots = shot_list[resampled_ind]
+    resampled_probs = success_list[resampled_ind]/resampled_shots
+
+    resampled_success = (
+        np.sum(np.random.binomial(shot_list[resampled_ind], resampled_probs), axis=1)
+        / np.sum(resampled_shots, axis=1)
+    )    
+    return resampled_success
