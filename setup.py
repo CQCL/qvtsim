@@ -29,7 +29,7 @@ requirements = [
 
 setuptools.setup(
     name="qvtsim",
-    version='0.2.0',
+    version='0.2.1',
     author="Quantinuum",
     author_email="charlie.baldwin@quantinuum.com",
     license="Apache 2.0",

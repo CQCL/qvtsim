@@ -96,7 +96,7 @@ def bootstrap(qv_fitter,
         for i in range(ntrials)
     ])
     success_list = np.array([
-        qv_fitter.heavy_output_counts[f'qv_depth_{nqubits}_trial_{i}']/shot_list[i]
+        qv_fitter.heavy_output_counts[f'qv_depth_{nqubits}_trial_{i}']
         for i in range(ntrials)
     ])
 
